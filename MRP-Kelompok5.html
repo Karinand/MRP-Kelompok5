@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Forecasting</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        table {
+            width: 50%;
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        h2,
+        h3 {
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin: 20px;
+        }
+
+        .button-container {
+            flex: 1;
+            text-align: left;
+            margin-top: 100px;
+            /* margin: auto; */
+        }
+
+        .button-container button {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .result-container {
+            flex: 1;
+            text-align: left;
+            /* margin-left: 20px; */
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Sales Forecasting</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Tahun</th>
+                <th>Penjualan (Juta Rp)</th>
+            </tr>
+        </thead>
+        <tbody id="salesTable"></tbody>
+    </table>
+
+    <div class="container">
+        <div class="col-md-6 button-container" style="text-align: left;">
+            <button onclick="forecastSMA()">Forecasted Simple Moving Area</button>
+            <button onclick="forecastWMA()">Forecasted Moving Weighted Area</button>
+        </div>
+
+        <div id="result" class="col-md-6 result-container"></div>
+    </div>
+
+    <script>
+        const salesData = [
+            { year: 1994, sales: 500 },
+            { year: 1995, sales: 365 },
+            { year: 1996, sales: 430 },
+            { year: 1997, sales: 445 },
+            { year: 1998, sales: 389 },
+            { year: 1999, sales: 381 },
+            { year: 2000, sales: 326 },
+            { year: 2001, sales: 387 },
+            { year: 2002, sales: 417 },
+            { year: 2003, sales: 411 },
+            { year: 2004, sales: 338 },
+        ];
+
+        const weights = [0.4, 0.3, 0.2, 0.1];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const salesTable = document.getElementById('salesTable');
+            salesData.forEach(data => {
+                const row = document.createElement('tr');
+                const yearCell = document.createElement('td');
+                const salesCell = document.createElement('td');
+
+                yearCell.textContent = data.year;
+                salesCell.textContent = data.sales;
+
+                row.appendChild(yearCell);
+                row.appendChild(salesCell);
+                salesTable.appendChild(row);
+            });
+        });
+
+        function forecastSMA() {
+            let forecastedSMA = [];
+
+            for (let i = 4; i < salesData.length; i++) {
+                let sum = 0;
+                for (let j = 0; j < 4; j++) {
+                    sum += salesData[i - j - 1].sales;
+                }
+                forecastedSMA.push({ year: salesData[i].year, forecast: sum / 4 });
+            }
+
+            let resultDiv = document.getElementById('result');
+            let resultHTML = '<h3>Forecasted Sales SMA</h3><table><thead><tr><th>Tahun</th><th>Forecast (juta Rp)</th></tr></thead><tbody>';
+            forecastedSMA.forEach(data => {
+                resultHTML += `<tr><td>${data.year}</td><td>${data.forecast.toFixed(2)}</td></tr>`;
+            });
+            resultHTML += '</tbody></table>';
+
+            // Calculate error rate for SMA
+            let totalErrorSMA = 0;
+            let totalAbsoluteError = 0;
+            let totalError = 0;
+            let nSMA = forecastedSMA.length;
+
+            for (let i = 0; i < nSMA; i++) {
+                let actualSalesSMA = salesData[i + 4].sales;
+                let forecasted = forecastedSMA[i].forecast;
+                totalErrorSMA += Math.abs(actualSalesSMA - forecasted) / actualSalesSMA;
+
+                totalAbsoluteError += Math.abs(actualSalesSMA - forecasted);
+                tempAbsoluteError = Math.abs(actualSalesSMA - forecasted);
+
+                totalError += Math.pow(tempAbsoluteError, 2);
+            }
+
+            let errorRateSMA = (totalErrorSMA / nSMA) * 100;
+            // resultHTML += `<h3>Error Rate SMA: ${errorRateSMA.toFixed(2)}%</h3>`;
+            resultHTML += `<h3>Total Absolute Error: ${totalAbsoluteError.toFixed(2)}</h3>`;
+            resultHTML += `<h3>Total Error^2: ${totalError.toFixed(2)}</h3>`;
+
+            resultDiv.innerHTML = resultHTML;
+        }
+
+        function forecastWMA() {
+            let forecastedWMA = [];
+
+            for (let i = 4; i < salesData.length; i++) {
+                let sum = 0;
+
+                for (let j = 0; j < 4; j++) {
+                    sum += salesData[i - j - 1].sales * weights[j];
+                }
+                forecastedWMA.push({ year: salesData[i].year, forecast: sum });
+            }
+
+            let resultDiv = document.getElementById('result');
+            let resultHTML = '<h3>Forecasted Sales WMA</h3><table><thead><tr><th>Tahun</th><th>Forecast (juta Rp)</th></tr></thead><tbody>';
+            forecastedWMA.forEach(data => {
+                resultHTML += `<tr><td>${data.year}</td><td>${data.forecast.toFixed(2)}</td></tr>`;
+            });
+            resultHTML += '</tbody></table>';
+
+            // Calculate error rate for SMA
+            let totalErrorWMA = 0;
+            let totalAbsoluteError = 0;
+            let totalError = 0;
+            let nWMA = forecastedWMA.length;
+
+            for (let i = 0; i < nWMA; i++) {
+                let actualSalesWMA = salesData[i + 4].sales;
+                let forecasted = forecastedWMA[i].forecast;
+                totalErrorWMA += Math.abs(actualSalesWMA - forecasted) / actualSalesWMA;
+
+                totalAbsoluteError += Math.abs(actualSalesWMA - forecasted);
+                tempAbsoluteError = Math.abs(actualSalesWMA - forecasted);
+
+                totalError += Math.pow(tempAbsoluteError, 2);
+            }
+            let errorRate = (totalErrorWMA / nWMA) * 100;
+            // resultHTML += `<h3>Error Rate WMA: ${errorRate.toFixed(2)}%</h3>`;
+            resultHTML += `<h3>Total Absolute Error: ${totalAbsoluteError.toFixed(2)}</h3>`;
+            resultHTML += `<h3>Total Error^2: ${totalError.toFixed(2)}</h3>`;
+
+            resultDiv.innerHTML = resultHTML;
+        }
+    </script>
+</body>
+
+</html>
